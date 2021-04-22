@@ -24,7 +24,7 @@ M�s info: http://www.sistemasagiles.com.ar/trac/wiki/ProyectoWSFEv1
 __author__ = "Mariano Reingart <reingart@gmail.com>"
 __copyright__ = "Copyright (C) 2010-2017 Mariano Reingart"
 __license__ = "GPL 3.0"
-__version__ = "1.22b"
+__version__ = "1.22c"
 
 import datetime
 import decimal
@@ -45,7 +45,7 @@ class WSFEv1(BaseWS):
     "Interfaz para el WebService de Factura Electr�nica Version 1 - 2.10"
     _public_methods_ = ['CrearFactura', 'AgregarIva', 'CAESolicitar',
                         'AgregarTributo', 'AgregarCmpAsoc', 'AgregarOpcional',
-                        'AgregarComprador',
+                        'AgregarComprador','AgregarPeriodoComprobantesAsociados',###se agrego metod publico AgregarPeriodoComprobantesAsociados
                         'CompUltimoAutorizado', 'CompConsultar',
                         'CAEASolicitar', 'CAEAConsultar', 'CAEARegInformativo',
                         'CAEASinMovimientoInformar',
@@ -182,6 +182,15 @@ class WSFEv1(BaseWS):
         self.factura['cbtes_asoc'].append(cmp_asoc)
         return True
 
+    def AgregarPeriodoComprobantesAsociados(self, fecha_desde=None, fecha_hasta=None, **kwargs):
+        "Agrego el perído de comprobante asociado a una factura (interna)"
+        p_cmp_asoc = {
+            'fecha_desde': fecha_desde,
+            'fecha_hasta': fecha_hasta,
+            }
+        self.factura['periodo_cbtes_asoc'] = p_cmp_asoc
+        return True
+
     def AgregarTributo(self, tributo_id=0, desc="", base_imp=0.00, alic=0, importe=0.00, **kwarg):
         "Agrego un tributo a una factura (interna)"
         tributo = {'tributo_id': tributo_id, 'desc': desc, 'base_imp': base_imp,
@@ -254,6 +263,12 @@ class WSFEv1(BaseWS):
                     'FchVtoPago': f.get('fecha_venc_pago'),
                     'MonId': f['moneda_id'],
                     'MonCotiz': f['moneda_ctz'],
+                    ###############Agregado
+                    'PeriodoAsoc': {
+                        'FchDesde': f['periodo_cbtes_asoc'].get('fecha_desde'),
+                        'FchHasta': f['periodo_cbtes_asoc'].get('fecha_hasta'),
+                        } if 'periodo_cbtes_asoc' in f else None,
+                    ##################
                     'CbtesAsoc': f['cbtes_asoc'] and [
                         {'CbteAsoc': {
                             'Tipo': cbte_asoc['tipo'],
@@ -574,6 +589,12 @@ class WSFEv1(BaseWS):
                     'FchVtoPago': f.get('fecha_venc_pago'),
                     'MonId': f['moneda_id'],
                     'MonCotiz': f['moneda_ctz'],
+                    ######################Agregado
+                    'PeriodoAsoc': {
+                        'FchDesde': f['periodo_cbtes_asoc'].get('fecha_desde'),
+                        'FchHasta': f['periodo_cbtes_asoc'].get('fecha_hasta'),
+                        } if 'periodo_cbtes_asoc' in f else None,
+                    ####################
                     'CbtesAsoc': [
                         {'CbteAsoc': {
                             'Tipo': cbte_asoc['tipo'],
@@ -763,6 +784,12 @@ class WSFEv1(BaseWS):
                     'FchVtoPago': f.get('fecha_venc_pago'),
                     'MonId': f['moneda_id'],
                     'MonCotiz': f['moneda_ctz'],
+                    ###########################Agregado
+                    'PeriodoAsoc': {
+                        'FchDesde': f['periodo_cbtes_asoc'].get('fecha_desde'),
+                        'FchHasta': f['periodo_cbtes_asoc'].get('fecha_hasta'),
+                        } if 'periodo_cbtes_asoc' in f else None,
+                    ###########################
                     'CbtesAsoc': [
                         {'CbteAsoc': {
                             'Tipo': cbte_asoc['tipo'],
@@ -1128,6 +1155,9 @@ def main():
                 wsfev1.AgregarOpcional(2102, "pyafipws")               # alias
                 if tipo_cbte in (203, 208, 213):
                     wsfev1.AgregarOpcional(22, "S")  # Anulación
+
+            if '--rg4540' in sys.argv:
+                wsfev1.AgregarPeriodoComprobantesAsociados('20200101', '20200131')
 
             # agregar la factura creada internamente para solicitud múltiple:
             if "--multiple" in sys.argv:
